@@ -1,9 +1,24 @@
+#' Lotka-Volterra (Scenario Two: Biomass-Closure Threshold) Model Simulation
 #'
-#'
-#'
-#'
-#'
-#'
+#' simulates the dynamics of a predator-prey system using a discrete-time Lotka-Volterra model with logistic prey growth, predator carrying capacity, proportional prey harvest (biomass-based hunting), and a biomass-closure threshold
+#' 
+#' @param initial_states a named list with two elements: \code{V0} (initial prey biomass) and \code{P0} (initial predator biomass)
+#' @param years number of years to simulate
+#' @param params a named list of parameters:
+#' \itemize{
+#'   \item \code{b}: prey intrinsic growth rate
+#'   \item \code{K_v}: prey carrying capacity
+#'   \item \code{K_p}: predator carrying capacity
+#'   \item \code{alpha}: predator attack rate on prey
+#'   \item \code{c}: conversion efficiency of prey into predator biomass
+#'   \item \code{d}: predator mortality rate
+#'   \item \code{h}: proportional harvest rate of prey (biomass-based hunting)
+#'   \item \code{V_thresh}: minimum prey biomass required to activate harvest
+#' }
+#' @param dt the time step in days (default = 1).
+#' @param recovery_buffer number of consecutive years that prey biomass must remain above \code{V_thresh} before resuming hunting (default is 2)
+#' @author Jaden Orli
+#' @return a data frame with columns \code{year}, \code{prey}, and \code{predator}, \code{hunting}, and \code{hunt_amount}
 
 #write a function to simulate a predator-prey model and return the final population size for each year
 lotka_volterra2 <- function(initial_states, years, params, dt = 1, recovery_buffer = 2) {

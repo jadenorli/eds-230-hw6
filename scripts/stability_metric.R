@@ -1,9 +1,18 @@
+#' Stability Metric for Predator-Prey Model Output
+#' 
+#' evaluates the stability of predator and prey populations over the final 10 years of a simulation; stability is defined by two conditions: 
+#'        (1) the standard deviation of biomass remains within a specified fraction of the mean, and 
+#'        (2) the population stays above a defined minimum threshold for a required proportion of years.
 #'
-#'
-#'
-#'
-#'
-#'
+#' @param output a data frame from a predator-prey simulation function with columns \code{prey} and \code{predator}
+#' @param V_min minimum acceptable prey biomass threshold
+#' @param P_min minimum acceptable predator biomass threshold
+#' @param mean_prey long-term average or target mean prey biomass
+#' @param mean_predator long-term average or target mean predator biomass
+#' @param prop_years proportion of the last 10 years that populations must remain above the threshold to be considered stable (default is 0.6)
+#' @param sd_fraction maximum allowed standard deviation as a fraction of the mean (default is 0.4)
+#' @author Jaden Orli
+#' @return returns \code{1} if both prey and predator populations meet the stability criteria, otherwise returns \code{0}
 
 #write a function to assess the stability of a predator-prey simulation
 stability_metric <- function(output, V_min, P_min, mean_prey, mean_predator,

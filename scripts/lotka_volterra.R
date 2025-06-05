@@ -1,9 +1,21 @@
+#' Lotka-Volterra (No Hunting) Model Simulation
 #'
+#' simulates predator-prey dynamics using a discrete-time Lotka-Volterra model with logistic growth and carrying capacities for both prey and predator populations 
 #'
-#'
-#'
-#'
-#'
+#' @param initial_states a named list with two elements: \code{V0} (initial prey biomass) and \code{P0} (initial predator biomass)
+#' @param years number of years to simulate
+#' @param params a named list of parameters:
+#' \itemize{
+#'   \item \code{b}: prey intrinsic growth rate
+#'   \item \code{K_v}: prey carrying capacity
+#'   \item \code{K_p}: predator carrying capacity
+#'   \item \code{alpha}: predator attack rate on prey
+#'   \item \code{c}: conversion efficiency of prey into predator biomass
+#'   \item \code{d}: predator mortality rate
+#' }
+#' @param dt the time step in days (default = 1).
+#' @author Jaden Orli
+#' @return a data frame with columns \code{year}, \code{prey}, and \code{predator}, representing the final population size of each group at the end of each year
 
 #write a function to simulate a predator-prey model and return the final population size for each year
 lotka_volterra <- function(initial_states, years, params, dt = 1) {

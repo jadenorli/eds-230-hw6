@@ -1,10 +1,22 @@
+#' Lotka-Volterra (Scenario One: Biomass-Proportional Harvest) Model Simulation
 #'
-#'
-#'
-#'
-#'
-#'
-#'
+#' simulates the dynamics of a predator-prey system using a discrete-time Lotka-Volterra model with logistic prey growth, predator carrying capacity, and proportional prey harvest (biomass-based hunting)
+#' 
+#' @param initial_states a named list with two elements: \code{V0} (initial prey biomass) and \code{P0} (initial predator biomass)
+#' @param years number of years to simulate
+#' @param params a named list of parameters:
+#' \itemize{
+#'   \item \code{b}: prey intrinsic growth rate
+#'   \item \code{K_v}: prey carrying capacity
+#'   \item \code{K_p}: predator carrying capacity
+#'   \item \code{alpha}: predator attack rate on prey
+#'   \item \code{c}: conversion efficiency of prey into predator biomass
+#'   \item \code{d}: predator mortality rate
+#'   \item \code{h}: proportional harvest rate of prey (biomass-based hunting)
+#' }
+#' @param dt the time step in days (default = 1).
+#' @author Jaden Orli
+#' @return a data frame with columns \code{year}, \code{prey}, and \code{predator}
 
 #write a function to simulate a predator-prey model and return the final population size for each year
 lotka_volterra1 <- function(initial_states, years, params, dt = 1) {
