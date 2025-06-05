@@ -1,0 +1,1533 @@
+---
+title: "Scenario-Based Assessment of Ecosystem Stability Under Varying Harvest Regimes"
+subtitle: '<span style="font-size: 30px; text-align: center; display: block;">Insights from a Lotka-Volterra Simulation of Sardine and Predator Populations</span>'
+author: "Jaden Orli"
+date: last-modified
+bibliography: 
+ - references.bib
+execute: 
+  eval: true
+  message: false
+  warning: false 
+format:
+  html:
+    theme: minty
+    css: custom.css
+    toc: true
+    toc-title: "Table of Contents:"
+    toc-depth: 3
+    code-fold: true
+editor:
+  chunk_output_type: inline
+embed-resources: true
+---
+
+# I. Background
+
+This document explores a simple predator-prey Lotka-Voltera model with logistic growth under **three** different [**prey**]{style="color:#038C9F;"} harvest scenarios. We simulate one prey species and one [**predator**]{style="color:#D22600;"} species, using the [**Pacific sardine (*Sardinops sagax*)**]{style="color:#038C9F;"} as an example [**prey**]{style="color:#038C9F;"} population ($S$) subjected to fishing pressure, and predatory fish ($P$) as the [**predator**]{style="color:#D22600;"} [**Sardines**]{style="color:#038C9F;"} are a key forage species for many predatory fish, seabirds, and marine mammals. For simplicity, we model harvest only on the [**prey**]{style="color:#038C9F;"} species and ignore any harvest of the [**predator**]{style="color:#D22600;"}
+
+The [**Pacific sardine**]{style="color:#038C9F;"} stock is managed by the Pacific Fishery Management Council through the Coastal Pelagic Species Fisheries Management Plan (CPSFMP) [@CPSFMP]. [**Sardines**]{style="color:#038C9F;"} have supported large-scale commercial fisheries since the early 1900s. However, in 2015, a moratorium was placed on the U.S. commercial fishery, which remains in place today. In 2019, the National Marine Fisheries Service formally declared the stock overfished, with biomass falling below the minimum stock size threshold (MSST) of 50,000 metric tons. A rebuilding plan was subsequently adopted with a target biomass of 150,000 metric tons [@CPSFMP].
+
+The coastal pelagic fishery operates year-round when open, and annual stock assessments are used to set yearly harvest limits. This represents a form of **adaptive management**, where harvest policies are informed by changes in stock status.
+
+# II. Lotka-Voltera Model with Logisitic Growth
+
+The basis of this model is a predator-prey Lotka-Voltera model with logistic growth for both the [**prey**]{style="color:#038C9F;"} and the [**predator**]{style="color:#D22600;"}. The equation for the change in the [**prey**]{style="color:#038C9F;"} population ($S$) and the change in the [**predator**]{style="color:#D22600;"} population ($P$) are outlined below:
+
+$$
+\begin{align}
+\frac{dS}{dt} &= bS \left(1 - \frac{S}{K_S}\right)- \alpha P S \\  
+\frac{dP}{dt} &= c\alpha P S \left(1 - \frac{P}{K_P}\right) - dP
+\end{align}
+$$
+
+$$
+\begin{aligned}
+\text{where:} \\
+S & = \text{sardine (prey) population} \\
+P & = \text{predatory fish population} \\
+b & = \text{intrinsic growth rate of sardine} \\
+K_S & = \text{carrying capacity of sardine population} \\
+\alpha & = \text{attack rate (predator-prey interaction coefficient)} \\
+c & = \text{conversion efficiency of consumed sardine into predator biomass} \\
+K_P & = \text{carrying capacity of the predator population} \\
+d & = \text{natural mortality rate of predatory fish}
+\end{aligned}
+$$
+
+Throughout the below scenarios we will keep the same [**predator**]{style="color:#D22600;"} ($P$) equation and modify the [**prey**]{style="color:#038C9F;"} species ($S$) equation to determine how various harvest scenarios effect the model dynamics and stability. Each of the scenarios will build on the prior one:
+
+  1. [Scenario One: Biomass-Proportional Harvest](#scenario1),
+  2. [Scenario Two: Scenario One + Biomass Closure Threshold](#scenario2), and
+  3. [Scenario Three: Scenario Two + Adapative Management](#scenario3)
+
+
+## 1. Scenario One: Biomass-Proportional Harvest {#scenario1}
+
+In this first scenario, we implement a **biomass-proportional** harvest rule. Here, the harvest rate is directly proportional to the current size of the [**prey**]{style="color:#038C9F;"} population, reflecting real-world fishery management practices like those used for the [**Pacific sardine (*Sardinops sagax*)**]{style="color:#038C9F;"}, where catch limits are set as a fixed fraction of the estimated stock biomass. This approach assumes consistent fishing effort, meaning that more individuals are harvested when the stock is abundant, and fewer when the stock is depleted. It provides a realistic and precautionary framework for examining the effects of fishing on population dynamics.
+
+$$
+\begin{align}
+\frac{dS}{dt} &= bS \left(1 - \frac{S}{K_S}\right) - \alpha P S - hS \\
+\newline
+\text{where}: \\
+h &= \text{biomass-proportional harvest rate} \\
+&= \text{fraction of S removed per unit time}
+\end{align}
+$$
+
+## 2. Scenario Two: Scenario One + Biomass Closure Threshold {#scenario2}
+
+In the second scenario, we implement a **biomass-based closure threshold**, $S_{\text{thresh}}$, that suspends harvest when the [**prey**]{style="color:#038C9F;"} population drops below a specified minimum (ex. 80% of the long-term mean as determined in the no-harvest scenario). In addition to this threshold, we add a **recovery** buffer that requires the [**prey**]{style="color:#038C9F;"} population to remain above the threshold for **at least two consecutive years** before harvesting is allowed again. This precautionary rule mimics real-world management triggers such as the closure rule for the [**Pacific sardine (*Sardinops sagax*)**]{style="color:#038C9F;"}, which halts fishing when estimated biomass falls below 150,000 metric tons. 
+
+
+$$
+\frac{dS}{dt} = bS \left(1 - \frac{S}{K_S} \right)  - \alpha PS - h S \cdot \mathbb{1}_{hunt_{\text{on}}} 
+$$
+Harvesting is modeled as a density-dependent function of the [**prey**]{style="color:#038C9F;"} population and is multiplied by an indicator function $\mathbb{1}_{\text{hunt\_on}}$ that depends on the [**prey's**]{style="color:#038C9F;"} status relative to the threshold and the recovery buffer.
+
+$$
+\begin{align}
+\text{where}: \\
+\newline
+\mathbb{1}_{hunt_{\text{on}}} &=
+\begin{cases}
+1 & \text{if } S > S_{\text{thresh}}\ \text{for at least B consecutive years} \\
+0 & \text{otherwise}
+\end{cases}
+\end{align}
+$$
+
+## 3. Scenario Three: Scenario Two + Adaptive Management {#scenario3}
+
+In the final scenario, we incorporate **adaptive management** ($h_t$) into the existing harvest rule that already includes biomass-proportional harvest and a biomass closure threshold with a recovery buffer. This approach simulates a responsive management system, where the **harvest rate is adjusted annually** based on trends in the [**prey**]{style="color:#038C9F;"} population.
+
+Specifically, the model increases harvest pressure when the [**sardine**]{style="color:#038C9F;"} population grows from one year to the next, and reduces pressure when it declines, mimicking real-world precautionary strategies. If the [**prey**]{style="color:#038C9F;"} population rises, harvest effort is increased by 20%. If it declines, harvest is reduced by 20%.
+
+This type of adaptive control is used in several fisheries, including the [**Pacific sardine (*Sardinops sagax*)**]{style="color:#038C9F;"}, where harvest quotas are adjusted based on stock assessments. The dynamic harvest rate $h_t$ is calculated as follows:
+
+  
+$$
+\begin{align}
+h_t &= 
+\begin{cases}
+1.2h & \text{if } S_t > S_{\text{last year}} \\\\
+0.8h & \text{if } S_t \leq S_{\text{last year}}
+\end{cases}
+\end{align}
+$$
+This rate is bounded between 0 and 1 to ensure biological realism.
+
+Harvest is still conditional on the population being above the closure threshold for $B$ years. The full [**prey**]{style="color:#038C9F;"} dynamic becomes:
+
+$$
+\frac{dS}{dt} = bS \left(1 - \frac{S}{K_v} \right) - \alpha PS - h_t S \cdot \mathbb{1}_{hunt_{\text{on}}}
+$$
+It enables exploration of how responsive harvest strategies can stabilize populations in variable environments.
+
+# III. Set Up
+
+We begin by clearing the current R environment and loading the required packages for simulation, data manipulation, and visualization. 
+
+## a) Load Libraries
+
+```{r}
+#this clears out the environment
+rm(list = ls())
+
+#load the necessary libraries
+library(calecopal)
+library(sensitivity)
+library(tidyverse)
+library(here)
+library(kableExtra)
+library(htmltools)
+library(scales)
+library(janitor)
+library(lhs)
+library(purrr)
+
+#set the seed for reproducibility
+set.seed(42)
+
+```
+
+
+## b) Color Palettes
+
+Next, we define two custom color palettes using the **Calecopal** package—one for species and one for model parameters. These palettes will be used consistently across all plots to improve readability and visual appeal.
+
+```{r}
+#create a color palette to use throughout the project
+kelp1 <- cal_palette(name = "kelp1", n = 50, type = "continuous")
+
+#create a named list of colors from the kelp1 palette for the species
+species_colors <- c("V" = "#038C9F", 
+                    "P" = "#D22600")
+
+#create a color palette to use throughout the project
+figmtn <- cal_palette(name = "figmtn", n = 50, type = "continuous")
+
+#create a named list of colors from the figmtn palette for the parameters
+parameter_colors <- c("h" = "#6B6D9F",
+                      "V_thresh" = "#6C568C",
+                      "b" = "#58A1F7",
+                      "alpha" = "#F09D22",
+                      "K_v" = "#54A095",
+                      "K_p" = "#DD4D00",
+                      "c" = "#F7B706",
+                      "d" = "gray40")
+
+```
+
+
+# IV. Lotka-Volterra Scenarios 
+
+## 0. Scenario Zero {#scenario0}
+
+We begin our analysis by exploring the **baseline** predator-prey dynamics in the **absence of harvest**. This provides a reference scenario for evaluating how hunting pressure alters population stability. In this version, [**sardine (prey)**]{style="color:#038C9F;"} and [**predator**]{style="color:#D22600;"} populations interact under logistic growth, but no external harvest is imposed on the [**prey**]{style="color:#038C9F;"} population.
+
+This scenario will allow us to compute long-term means and variability in population sizes, which will later serve as benchmarks for defining stability thresholds in harvested scenarios.
+
+### a) Load Function
+
+We start by loading the R function that implements the Lotka-Volterra model with logistic growth for both [**prey**]{style="color:#038C9F;"} and [**predator**]{style="color:#D22600;"} species. This function simulates yearly dynamics over a defined number of years.
+
+```{r}
+#load in the lotka volterra without hunting function 
+source(here("scripts", "lotka_volterra.R"))
+
+#view the lotkavolterra function 
+lotka_volterra
+
+```
+
+### b) Initial Conditions
+
+Next, we specify biological and ecological parameters for the simulation. These include [**prey**]{style="color:#038C9F;"} growth rate, carrying capacities for both species, [**predator**]{style="color:#D22600;"} mortality, and interaction strengths. We also initialize population sizes at biologically plausible starting values.
+
+```{r}
+#define the parameters
+params <- list(b = 0.95, #prey birth rate
+               K_v = 7000, #prey carrying capacity
+               K_p = 100, #predator carrying capacity
+               alpha = 0.008, #predator attack rate on prey
+               c = 0.4, #predator conversion efficiency
+               d = 0.2) #predator mortality rate 
+
+#define the initial starting populations for the predator and prey for the model 
+initial_state = list(V0 = 4000, P0 = 10)
+
+#define the number of years
+years <- 50
+
+```
+
+
+### c) Run Simulation 
+
+With the function and inputs defined, we now simulate population dynamics over 50 years and compute the long-term average population sizes of both species. These baseline values will be used to define "**stable**" population bands in subsequent analyses.
+
+```{r}
+#run the 50-year simulation
+final_values <- lotka_volterra(initial_states = initial_state, 
+                               years = years, 
+                               params = params)
+
+#calculate the mean prey value 
+mean_prey <- final_values %>%
+  summarise(mean_prey = mean(prey, na.rm = TRUE)) %>% 
+  pull()
+            
+#calculate the mean predator value 
+mean_predator <- final_values %>%
+  summarise(mean_predator = mean(predator, na.rm = TRUE)) %>% 
+  pull()
+
+#convert the dataframe to a long format for easier visualization
+final_long <- final_values %>%
+  pivot_longer(cols = c(prey, predator), names_to = "species_raw", values_to = "population") %>%
+  mutate(species_id = recode(species_raw, "prey" = "V", "predator" = "P"),
+        facet_label = recode(species_raw,
+                         "prey" = "Sardine (Prey)",
+                         "predator" = "Predator"),
+        facet_label = factor(facet_label, levels = c("Sardine (Prey)", "Predator")),
+        ymax = ifelse(species_raw == "prey", mean_prey, mean_predator))
+
+#prepare hlines to match facet_label
+hlines <- data.frame(facet_label = factor(c("Sardine (Prey)", "Predator"), 
+                                          levels = c("Sardine (Prey)", "Predator")),
+                     value = c(mean_prey, mean_predator))
+
+#make a dataframe with species-specific stability bands 
+stability_bands <- data.frame(facet_label = factor(c("Sardine (Prey)", "Predator"), 
+                                                   levels = c("Sardine (Prey)", "Predator")),
+                              lower = c(mean_prey * 0.8, mean_predator * 0.8),
+                              upper = c(mean_prey * 1.2, mean_predator * 1.2))
+
+```
+
+We will later use ±20% of these mean values as stability bands, a population is considered "stable" if it remains within this band for a sufficient proportion of time.
+
+### d) Visualize Simulation 
+
+Finally, we generate a faceted plot to display how [**sardine**]{style="color:#038C9F;"} and [**predator**]{style="color:#D22600;"} populations fluctuate over time under the no-hunting scenario. Horizontal dashed lines represent the long-term mean for each species, while shaded ribbons indicate ±20% stability bands.
+
+```{r}
+#plot the simulation 
+ggplot(final_long, aes(x = year, y = population, color = species_id)) +
+   geom_rect(data = stability_bands,
+            aes(xmin = -Inf, xmax = Inf, ymin = lower, ymax = upper),
+            fill = c(species_colors[["V"]], species_colors[["P"]]),
+            alpha = 0.2,
+            inherit.aes = FALSE) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_color_manual(values = species_colors) + 
+  geom_hline(data = hlines, aes(yintercept = value), 
+             linetype = "dashed", linewidth = 0.5,
+             color = c(species_colors[["V"]], species_colors[["P"]])) +
+  geom_blank(aes(y = ymax)) +
+  facet_wrap(~ facet_label, scales = "free_y", ncol = 1) +
+  labs(title = "End-of-Year Population Values Across 50 Years",
+       subtitle = "No Hunting Scenario",
+       x = "Year",
+       y = "Population Size (metric tons)") +
+  theme_classic() +
+  theme(text = element_text(family = "Times New Roman"),
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 14, hjust = 0.5),
+        axis.title = element_text(size = 14, face = "bold"),
+        axis.text = element_text(size = 12),
+        legend.position = "none",
+        strip.text = element_text(size = 12, face = "bold"))
+
+```
+
+This baseline figure confirms that both [**prey**]{style="color:#038C9F;"} and [**predator**]{style="color:#D22600;"} populations fluctuate within reasonable bounds in the absence of hunting. The [**predator**]{style="color:#D22600;"} population shows slightly higher variability, but neither population crashes or grows out of bounds. This behavior is consistent with dampened oscillations which suggests that the system is potentially near a stable limit cycle. We will use these results to define stability criteria and assess how hunting alters long-term dynamics in the following scenarios.
+
+## 1. Scenario One
+
+In this first harvest scenario, we introduce **biomass-proportional hunting**, where the rate of [**prey**]{style="color:#038C9F;"} removal is directly tied to the size of the [**prey**]{style="color:#038C9F;"} population. Unlike fixed quota systems, this rule ensures that fewer [**sardines**]{style="color:#038C9F;"} are harvested when the stock is low and more are harvested when the stock is high, mimicking the logic of constant-effort fisheries.
+
+This approach reflects a simplified version of many real-world fisheries management strategies, including the [**Pacific sardine**]{style="color:#038C9F;"}, where total allowable catch is set as a fixed fraction of biomass estimated from stock assessments. While not yet precautionary, this model provides a useful benchmark for comparing the effects of different harvest strategies on long-term population stability.
+
+### a) Load Function 
+
+We begin by sourcing the R script containing the updated Lotka-Volterra function for this harvest scenario. This function modifies the [**prey**]{style="color:#038C9F;"} equation to include a harvest term proportional to [**prey**]{style="color:#038C9F;"} biomass (i.e., total population size):
+
+```{r}
+#load in the scenario one function 
+source(here("scripts", "lotka_volterra1.R"))
+
+#view the lotka_volterra1 function 
+lotka_volterra1
+
+```
+
+### b) Initial Conditions
+
+Next, we define the biological and management parameters. The key new parameter here is $h$, the harvest rate.
+
+```{r}
+#define the parameters
+params1 <- list(b = 0.95, #prey birth rate
+                K_v = 7000, #prey carrying capacity
+                K_p = 100, #predator carrying capacity
+                alpha = 0.008, #predator attack rate on prey
+                c = 0.4, #predator conversion efficiency
+                d = 0.2, #predator mortality rate 
+                h = 0.1) #hunting rate
+
+#define the initial starting populations for the predator and prey for the model 
+initial_state1 = list(V0 = 4000, P0 = 10)
+
+```
+
+
+### c) Run Simulation 
+
+With the model and parameters defined, we simulate population dynamics for 50 years under the new harvest regime. As before, we transform the output to long format for consistent plotting.
+
+```{r}
+#run the 50-year simulation
+final_values1 <- lotka_volterra1(initial_states = initial_state1, 
+                                 years = 50, 
+                                 params = params1)
+
+#convert the dataframe to a long format for easier visualization
+final_long1 <- final_values1 %>%
+  pivot_longer(cols = c(prey, predator), names_to = "species_raw", values_to = "population") %>%
+  mutate(species_id = recode(species_raw, "prey" = "V", "predator" = "P"),
+        facet_label = recode(species_raw,
+                         "prey" = "Sardine (Prey)",
+                         "predator" = "Predator"),
+        facet_label = factor(facet_label, levels = c("Sardine (Prey)", "Predator")),
+        ymax = ifelse(species_raw == "prey", mean_prey, mean_predator))
+
+```
+
+
+### d) Visualize Simulation
+
+We now visualize population trajectories under this harvest regime. The shaded bands and dashed lines reflect the mean ± 20% bounds from the no-hunting scenario, providing a baseline for evaluating deviations due to harvest.
+
+```{r}
+#plot the simulation 
+ggplot(final_long1, aes(x = year, y = population, color = species_id)) +
+   geom_rect(data = stability_bands,
+            aes(xmin = -Inf, xmax = Inf, ymin = lower, ymax = upper),
+            fill = c(species_colors[["V"]], species_colors[["P"]]),
+            alpha = 0.2,
+            inherit.aes = FALSE) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_color_manual(values = species_colors) + 
+  geom_hline(data = hlines, aes(yintercept = value), 
+             linetype = "dashed", linewidth = 0.5,
+             color = c(species_colors[["V"]], species_colors[["P"]])) +
+  geom_blank(aes(y = ymax)) +
+  facet_wrap(~ facet_label, scales = "free_y", ncol = 1) +
+  labs(title = "End-of-Year Population Values Across 50 Years",
+       subtitle = "Scenario One",
+       x = "Year",
+       y = "Population Size (metric tons)") +
+  theme_classic() +
+  theme(text = element_text(family = "Times New Roman"),
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 14, hjust = 0.5),
+        axis.title = element_text(size = 14, face = "bold"),
+        axis.text = element_text(size = 12),
+        legend.position = "none",
+        strip.text = element_text(size = 12, face = "bold"))
+
+```
+
+Under biomass-proportional harvest, we observe a notable decline in the [**sardine**]{style="color:#038C9F;"} population compared to the no-hunting scenario. The [**prey**]{style="color:#038C9F;"} population remains consistently below the upper and lower bounds of the predefined stability **<span style="color:#038C9F;">band</span>**, suggesting that even a moderate, density-dependent harvest rate ($h = 0.1$) can suppress the population below the defined stable levels. Mathematically, this system is bounded and periodic indicating it is dynamically stable, but there is a significantly depressed equilibrium (falls outside of the 20% bounds) caused by harvest on the [**prey**]{style="color:#038C9F;"} 
+
+In contrast, the [**predator**]{style="color:#D22600;"} population stays within its expected range, indicating some resilience to reduced [**prey**]{style="color:#038C9F;"} availability. This is possibly due to the conversion efficiency and carrying capacity buffering the effects. This outcome highlights a key insight: biomass-proportional harvest **alone** may be insufficient to ensure [**prey**]{style="color:#038C9F;"} stability, especially if harvest pressure is not carefully calibrated to account for ecosystem interactions and [**prey**]{style="color:#038C9F;"} recovery rates. 
+
+## 2. Scenario Two
+
+In this scenario, we enhance the management approach by implementing a **biomass-based closure threshold**. When the [**sardine (prey)**]{style="color:#038C9F;"} population drops below a defined minimum threshold, harvest is halted. This simulates a precautionary policy similar to real-world regulations, such as the U.S. sardine fishery closure when biomass falls below 150,000 metric tons [@CPSFMP].
+
+To ensure the [**prey**]{style="color:#038C9F;"} population has sufficient time to recover, we add a **recovery buffer**, requiring the population to stay above the threshold for at least two consecutive years before harvesting can resume. This additional safeguard reduces the risk of repeated overharvest and instability near the threshold.
+
+### a) Load Function 
+
+We begin by sourcing the updated model function that includes both a biomass threshold and recovery buffer logic. This function adds a binary indicator for whether harvest is allowed each year and toggles it based on population trends:
+
+```{r}
+#load in the scenario two function 
+source(here("scripts", "lotka_volterra2.R"))
+
+#view the lotka_volterra2 function 
+lotka_volterra2
+
+```
+
+### b) Initial Conditions
+
+Next, we define all biological and management parameters. The closure threshold ($V_thresh$) is set to 80% of the long-term mean [**prey**]{style="color:#038C9F;"} biomass from the no-hunting scenario. This mirrors how fisheries reference past productivity to guide policy (ex. MSST and Btarget in rebuilding plans).
+
+```{r}
+#define the prey carrying capacity
+K_v <- 8000
+
+#define the minimum prey biomass closure threshold to be 80% of the average prey biomass under no hunting 
+V_min <- 0.8 * mean_prey
+
+#define the minimum prey biomass closure threshold to be 80% of the average prey biomass under no hunting 
+P_min <- 0.8 * mean_predator
+
+#define the parameters
+params2 <- list(b = 0.95, #prey birth rate
+                K_v = K_v, #prey carrying capacity
+                K_p = 100, #predator carrying capacity
+                alpha = 0.008, #predator attack rate on prey
+                c = 0.4, #predator conversion efficiency
+                d = 0.2, #predator mortality rate 
+                h = 0.1, #hunting rate
+                V_thresh = V_min) #biomass closure threshold set at V_min
+
+#define the initial starting populations for the predator and prey for the model 
+initial_state2 = list(V0 = 4000, P0 = 10)
+
+```
+
+
+### c) Run Simulation 
+
+We simulate 50 years of dynamics and reshape the output to long format for visualization. We also extract years when harvest was active, which we will highlight in the plot.
+
+```{r}
+#run the 50-year simulation
+final_values2 <- lotka_volterra2(initial_states = initial_state2, 
+                                 years = 50, 
+                                 params = params2)
+
+#convert the dataframe to a long format for easier visualization
+final_long2 <- final_values2 %>%
+  pivot_longer(cols = c(prey, predator), names_to = "species_raw", values_to = "population") %>%
+  mutate(species_id = recode(species_raw, "prey" = "V", "predator" = "P"),
+        facet_label = recode(species_raw,
+                         "prey" = "Sardine (Prey)",
+                         "predator" = "Predator"),
+        facet_label = factor(facet_label, levels = c("Sardine (Prey)", "Predator")),
+        ymax = ifelse(species_raw == "prey", mean_prey, mean_predator))
+
+#create a dataframe with the hunting bands
+hunt_bands2 <- final_values2 %>%
+  filter(hunting == 1) %>%
+  mutate(xmin = year - 0.5,
+         xmax = year + 0.5,
+         ymin = -Inf,
+         ymax = Inf)
+
+```
+
+
+### d) Visualize Simulation
+
+This figure shows how the **biomass closure rule** regulates harvest and impacts population dynamics. **<span style="background-color:#808080; padding:2px;">Gray bands</span>**denote years in which hunting **was allowed**. Unlike Scenario One, harvest is not continuous and pauses occur when the population dips below the threshold, creating adaptive pulses of exploitation.
+
+```{r}
+#plot the simulation 
+ggplot(final_long2, aes(x = year, y = population, color = species_id)) +
+  geom_rect(data = hunt_bands2,
+          aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+          fill = "grey80", alpha = 0.7, inherit.aes = FALSE) +
+   geom_rect(data = stability_bands,
+            aes(xmin = -Inf, xmax = Inf, ymin = lower, ymax = upper),
+            fill = c(species_colors[["V"]], species_colors[["P"]]),
+            alpha = 0.2,
+            inherit.aes = FALSE) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_color_manual(values = species_colors) + 
+  geom_hline(data = hlines, aes(yintercept = value), 
+             linetype = "dashed", linewidth = 0.5,
+             color = c(species_colors[["V"]], species_colors[["P"]])) +
+  geom_blank(aes(y = ymax)) +
+  facet_wrap(~ facet_label, scales = "free_y", ncol = 1) +
+  labs(title = "End-of-Year Population Values Across 50 Years",
+       subtitle = "Scenario Two",
+       x = "Year",
+       y = "Population Size (metric tons)") +
+  theme_classic() +
+  theme(text = element_text(family = "Times New Roman"),
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 14, hjust = 0.5),
+        axis.title = element_text(size = 14, face = "bold"),
+        axis.text = element_text(size = 12),
+        legend.position = "none",
+        strip.text = element_text(size = 12, face = "bold"))
+
+```
+
+This plot illustrates how introducing a biomass closure threshold with a recovery buffer fundamentally changes the dynamics of the predator-prey system compared to constant harvest. Compared to Scenario One, the [**sardine**]{style="color:#038C9F;"} population size now oscillates much closer to the mean population size from the no hunting scenario. By suspending harvest when the [**prey**]{style="color:#038C9F;"} population falls below a biologically informed limit and requiring two years of recovery before resuming fishing, the system gains a degree of resilience.The [**predator**]{style="color:#D22600;"} population similarly oscillates within a narrower **<span style="background-color:#D22600; padding:2px;">predator</span>**that the [**predator**]{style="color:#D22600;"} population in Scenario One. 
+
+The **<span style="background-color:#808080; padding:2px;">gray bands</span>** highlight the intermittent nature of harvest under this policy, echoing precautionary frameworks used in real-world fisheries management. In the next scenario, we build upon this structure by incorporating adaptive management, where the harvest rate itself becomes dynamic—rising or falling in response to changes in the [**prey**]{style="color:#038C9F;"} population year over year. This added responsiveness introduces a new layer of complexity and realism to the model, allowing us to explore how policy feedback mechanisms can further influence long-term stability.
+
+
+## 3. Scenario Three
+
+In the final scenario, we implement an **adaptive harvest** strategy that modifies the annual harvest rate based on recent trends in the prey ([**sardine**]{style="color:#038C9F;"}) population. This approach reflects precautionary real-world fisheries management, where quotas are adjusted annually based on stock assessments. If the population increases from one year to the next, the harvest rate is raised; if the population decreases, the rate is reduced. This mimics the feedback-based structure of adaptive management frameworks currently used in the  [**Pacific sardine**]{style="color:#038C9F;"} fishery and other coastal pelagic systems.
+
+Building on the biomass-based closure and recovery buffer rules from Scenario Two, this version introduces a dynamic harvest control rule that responds to population changes in real time. Specifically, the model increases the harvest rate by 20% when the [**sardine**]{style="color:#038C9F;"} population rises and decreases it by 20% when it falls. By embedding this feedback loop into the model, we capture the essence of a risk-averse strategy that balances exploitation with stock resilience, allowing for flexible management while safeguarding against overharvest.
+
+### a) Load Function
+
+We load the function that implements Scenario Three. It contains all components from Scenario Two plus dynamic adjustment of the harvest rate $h_t$.
+
+```{r}
+#load in the scenario three function 
+source(here("scripts", "lotka_volterra3.R"))
+
+#view the lotka_volterra3 function 
+lotka_volterra3
+
+```
+
+
+### b) Initial Conditions
+
+We define biological and management parameters. The baseline harvest rate $h$ is intentionally set low (0.1) to allow room for adaptive increases. The closure threshold remains based on 80% of the mean [**sardine**]{style="color:#038C9F;"} biomass from the no-harvest simulation.
+
+```{r}
+#define the prey carrying capacity
+K_v <- 8000
+
+#define the parameters
+params3 <- list(b = 0.95, #prey birth rate
+                K_v = K_v, #prey carrying capacity
+                K_p = 100, #predator carrying capacity
+                alpha = 0.008, #predator attack rate on prey
+                c = 0.4, #predator conversion efficiency
+                d = 0.2, #predator mortality rate 
+                h = 0.1, #hunting rate
+                V_thresh = V_min) #biomass closure threshold set at V_min
+
+#define the initial starting populations for the predator and prey for the model 
+initial_state3 = list(V0 = 4000, P0 = 10)
+
+```
+
+
+
+### c) Run Simulation 
+
+Then we simulate 50 years of dynamics and extract the end-of-year [**prey**]{style="color:#038C9F;"} and [**predator**]{style="color:#D22600;"} biomass, whether hunting was allowed, the total biomass extracted, and the harvest rate applied. 
+
+```{r}
+#run the 50-year simulation
+final_values3 <- lotka_volterra3(initial_states = initial_state3, 
+                                 years = 50, 
+                                 params = params3)
+
+
+hunting_plot_data <- final_values3 %>%
+  select(year, hunt_rate) %>%
+  mutate(hunt_rate_scaled = scales::rescale(hunt_rate, to = c(0, 1), na.rm = TRUE)) 
+
+
+#convert the dataframe to a long format for easier visualization
+final_long3 <- final_values3 %>%
+  pivot_longer(cols = c(prey, predator), names_to = "species_raw", values_to = "population") %>%
+  mutate(species_id = recode(species_raw, "prey" = "V", "predator" = "P"),
+        facet_label = recode(species_raw,
+                         "prey" = "Sardine (Prey)",
+                         "predator" = "Predator"),
+        facet_label = factor(facet_label, levels = c("Sardine (Prey)", "Predator")),
+        ymax = ifelse(species_raw == "prey", mean_prey, mean_predator))
+
+#create a dataframe with the hunting bands
+hunt_bands3 <- final_values3 %>%
+  filter(hunting == 1) %>%
+  mutate(xmin = year - 0.5,
+         xmax = year + 0.5,
+         ymin = -Inf,
+         ymax = Inf)
+
+```
+
+
+### d) Visualize Simulation
+
+Now we can visualize the timeseries from this simulation and evaluate whether adaptive response improves stability or introduces new variability.
+
+```{r}
+#plot the simulation 
+ggplot(final_long3, aes(x = year, y = population, color = species_id)) +
+  geom_rect(data = hunt_bands3,
+          aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+          fill = "grey80", alpha = 0.7, inherit.aes = FALSE) +
+   geom_rect(data = stability_bands,
+            aes(xmin = -Inf, xmax = Inf, ymin = lower, ymax = upper),
+            fill = c(species_colors[["V"]], species_colors[["P"]]),
+            alpha = 0.2,
+            inherit.aes = FALSE) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_color_manual(values = species_colors) + 
+  geom_hline(data = hlines, aes(yintercept = value), 
+             linetype = "dashed", linewidth = 0.5,
+             color = c(species_colors[["V"]], species_colors[["P"]])) +
+  geom_blank(aes(y = ymax)) +
+  facet_wrap(~ facet_label, scales = "free_y", ncol = 1) +
+  labs(title = "End-of-Year Population Values Across 50 Years",
+       subtitle = "Scenario Three",
+       x = "Year",
+       y = "Population Size (metric tons)") +
+  theme_classic() +
+  theme(text = element_text(family = "Times New Roman"),
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 14, hjust = 0.5),
+        axis.title = element_text(size = 14, face = "bold"),
+        axis.text = element_text(size = 12),
+        legend.position = "none",
+        strip.text = element_text(size = 12, face = "bold"))
+
+```
+
+This figure shows the strongest **stabilizing dynamics** yet. When compared to the prior two hunting scenarios, the [**prey**]{style="color:#038C9F;"} population is shown to fluctuate more narrowly within the **<span style="background-color:#038C9F; padding:2px;">blue stability band</span>**. In contrast to the prior two strategies, harvest effort here fluctuates dynamically with recent [**prey**]{style="color:#038C9F;"} trends, producing visibly variable hunting periods (**<span style="background-color:#808080; padding:2px;">gray bands</span>**) and year-to-year shifts in population size. Additionally, the hunting periods are longer than in scenario two indicating that the adaptive management adjustments help prevent prolonged closures. The [**predator**]{style="color:#D22600;"} dynamics also appear to remain within the respective stability range suggesting that the ecosystem stability is preserved. It appears that the **adaptive harvest** helps to **buffer** the system from collapse why continuing to allow for exploitation. 
+
+## 4. Scenario Comparison
+
+```{r}
+#calculate the baseline means
+baseline_means <- final_values %>%
+  summarise(mean_prey = mean(prey, na.rm = TRUE),
+            mean_predator = mean(predator, na.rm = TRUE))
+
+#extract the values
+baseline_prey <- baseline_means$mean_prey
+baseline_pred <- baseline_means$mean_predator
+
+#combine and compute stability relative to baseline
+summary_table <- bind_rows(final_values %>% mutate(scenario = "No Harvest"),
+                           final_values1 %>% mutate(scenario = "Scenario 1"),
+                           final_values2 %>% mutate(scenario = "Scenario 2"),
+                           final_values3 %>% mutate(scenario = "Scenario 3")) %>%
+  group_by(scenario) %>%
+  summarise(mean_prey = round(mean(prey, na.rm = TRUE), 1),
+            mean_predator = round(mean(predator, na.rm = TRUE), 1),
+            stable_prey_years = sum(prey >= 0.8 * baseline_prey, na.rm = TRUE),
+            stable_pred_years = sum(predator >= 0.8 * baseline_pred, na.rm = TRUE),
+            total_years = n(),
+            prop_years_stable = round((stable_prey_years + stable_pred_years) / (2 * total_years), 2))
+
+#render as kable
+summary_kable <- kable(summary_table,
+                       col.names = c("Scenario", "Mean Prey", "Mean Predator", 
+                    "Years Prey Stable", "Years Predator Stable", "Total Years", "Proportion Stable"),
+                       caption = htmltools::tags$div(style = "text-align: center; font-size: 1rem;",
+                                                     list(htmltools::tags$strong("Comparison of Scenario Outcomes"))),
+                      escape = FALSE) %>%
+  kable_styling(full_width = FALSE, font_size = "0.8rem", position = "center") %>%
+  row_spec(row = 0, bold = TRUE, background = "rgba(174, 209, 200, 0.4)") %>%
+  row_spec(row = 0:4, align = "center") %>% 
+  kable_classic(html_font = "Times New Roman")
+
+#print the kable 
+summary_kable
+
+```
+
+The four scenarios in this comparison illustrate a clear trade-off between harvest intensity and ecosystem stability. The **No Harvest** scenario provides a benchmark, with both [**prey**]{style="color:#038C9F;"} and [**predator**]{style="color:#D22600;"} populations maintaining full stability over the 50-year period and the highest average population sizes, confirming that the system is inherently resilient in the absence of human disturbance. In contrast, **Scenario 1**, which implements a constant or unregulated harvest rate, leads to a significant decline in [**prey**]{style="color:#038C9F;"} abundance and complete [**prey**]{style="color:#038C9F;"} instability (0 stable years), even while [**predator**]{style="color:#D22600;"} populations remain temporarily stable; indicating an ecologically unsustainable approach that risks eventual system collapse. **Scenario 2**, featuring a fixed biomass threshold for harvest, shows some improvement, stabilizing [**prey**]{style="color:#038C9F;"} in 33 of 50 years and slightly raising average populations compared to Scenario 1. However, the most effective approach is **Scenario 3**, which incorporates adaptive management by adjusting harvest pressure based on yearly [**prey**]{style="color:#038C9F;"} trends. This dynamic strategy allows for ecological feedback, resulting in the highest stability among all harvest scenarios (39 stable years for [**prey**]{style="color:#038C9F;"} and all 50 for predators) while maintaining [**prey**]{style="color:#038C9F;"} and [**predator**]{style="color:#D22600;"} populations near those seen in the No Harvest baseline. Overall, Scenario 3 strikes the best balance between sustainability and harvest goals, demonstrating the value of adaptive harvest regulation in coupled human-natural systems.
+
+# V. Stability Analysis
+
+In this section, we evaluate the long-term stability of [**sardine**]{style="color:#038C9F;"}–[**predator**]{style="color:#D22600;"} dynamics under different harvest management strategies and ecological conditions. The goal is to understand which combinations of biological and management parameters are most likely to sustain stable populations over a 50-year timeline. 
+
+We define stability using a custom metric based on two ecological criteria applied to the last 10 years of each simulation:
+
+  1. **Variability constraint:** The standard deviation of both [**prey**]{style="color:#038C9F;"} and [**predator**]{style="color:#D22600;"} populations must remain below a specified fraction of their long-term, no-harvest mean (indicating low volatility).
+
+  2. **Persistence threshold:** Both populations must stay above a minimum biomass floor for a sufficient proportion of years (indicating resilience and avoidance of collapse).
+
+To implement this, we develop a `stability_metric()` function and wrap it within scenario-specific functions that simulate the Lotka-Volterra dynamics under different assumptions:
+
+  A. [Scenario A: Scenario Zero - No Harvest](#scenarioA),
+  B. [Scenario B: Scenario Two - Harvest Only](#scenarioB), and
+  C. [Scenario C: Scenario Three - All Parameters](#scenarioC)
+
+
+## a) Scenarios Overview
+
+We divide our analysis into three scenarios, each targeting a different set of uncertainty drivers:
+
+### A. Scenario A: No Harvest {#scenarioA}
+
+**Focus:** Understand how [**prey**]{style="color:#038C9F;"} growth, [**predator**]{style="color:#D22600;"} mortality, and other ecological rates affect system stability in the *absence* of harvest using the [baseline harvest scenario](#scenario0). 
+
+**Parameters:** `b`, `alpha`, `d`, `K_v`, `K_p`, `c`
+
+**Purpose:** Baseline sensitivity to natural dynamics.
+
+
+### B. Scenario B: Harvest Only
+
+**Focus:** Isolate how the hunting rate (`h`) and the biomass closure threshold (`V_thresh`) influence stability when *all* ecological parameters are fixed using the [second scenario](#scenario2). 
+
+**Parameters:** `h`, `V_thresh`
+
+**Purpose:** Assess how much management design alone can affect outcomes. We use the `lotka_volterra2()` function, which implements a harvest model with **fixed** hunting intensity (`h`) and a biomass threshold (`V_thresh`), but does **not** include adaptive adjustment of harvest over time. By holding biological processes constant and removing adaptive management logic, we ensure that any variability in stability arises solely from these two harvest levers.
+
+
+### C. Scenario C: All Parameters
+
+**Focus:** Explore interactions and tradeoffs between ecological uncertainty and harvest control rules using the [third scenario](#scenario3).
+
+**Parameters:** All eight (`h`, `V_thresh`, `b`, `alpha`, `d`, `K_v`, `K_p`, `c`)
+
+**Purpose:** Full sensitivity profile under adaptive harvest. This exploration uses the `lotka_volterra3()` function, which allows for a dynamic interaction between ecological conditions and management responses. This is essential for capturing how uncertainty in both biological and management parameters jointly influence system behavior. This setup more realistically reflects ecosystem-based fisheries management and allows us to assess how sensitive outcomes are to assumptions about both ecological traits and rule-based harvest strategies.
+
+
+## b) Load Functions
+
+First we will load the required functions for the stability analysis. 
+
+### i) Stability Metric Function 
+
+We begin by loading the stability metric function, which evaluates whether a predator-prey simulation maintains both populations within an acceptable range of variability and above a minimum biomass threshold during the final years of the simulation.
+
+```{r}
+#load in the stability metric function 
+source(here("scripts", "stability_metric.R"))
+
+#view the stability_metric function 
+stability_metric
+
+```
+
+
+### ii) No Hunting Wrapper Function
+
+This wrapper runs the simulation without harvest and calculates the stability score using the `stability_metric()` function.
+
+```{r}
+#load in the no hunting wrapper function 
+source(here("scripts", "no_hunting_wrapper.R"))
+
+#view the no_hunting_wrapper function 
+no_hunting_wrapper
+
+```
+
+
+### iii) Hunting Wrapper Functions 
+
+We also load in the hunting wrapper functions which asses whether the simulation is stable by computing two criteria over the last 10 years using the `stability_metric` function. The first criteria is that the standard deviation of each population is below a fraction of the mean derived from the no hunting simulation. The second criteria is that the population remains above a minimum biomass threshold for a proportion of years.
+
+```{r}
+#load in the hunting wrapper function 
+source(here("scripts", "hunting_wrapper.R"))
+
+#load in the hunting wrapper 2 function 
+source(here("scripts", "hunting_wrapper2.R"))
+
+#view the hunting_wrapper function 
+hunting_wrapper
+
+```
+
+
+## c) Sobol Indices
+
+Now we will set up to calculate the Sobol indices. 
+
+### i) Define Parameter Ranges
+
+To begin the sensitivity analysis, we first define the ranges of input parameters to be varied in each scenario. These ranges reflect the plausible biological and management uncertainties surrounding the predator-prey dynamics of the Pacific sardine fishery. We tailor the parameter space differently for each scenario to isolate and evaluate the influence of specific variable types—biological, management, or both combined—on system stability.
+
+#### A) Scenario A
+
+In Scenario A, we focus exclusively on ecological uncertainty. We vary six biological parameters that govern [**prey**]{style="color:#038C9F;"} growth, [**predator**]{style="color:#D22600;"} feeding dynamics, mortality, and resource availability. This allows us to determine which biological processes most strongly drive long-term population stability in the absence of harvesting pressure.
+
+```{r}
+#define the minimum and maximum values for each parameter to sample over
+param_rangesA <- data.frame(b = c(0.7, 1.2),  #prey intrinsic growth rate
+                            alpha = c(0.001, 0.01), #predator attack rate on prey
+                            d = c(0.05, 0.3), #predator mortality rate
+                            K_v = c(3000, 10000), #prey carrying capacity
+                            K_p = c(80, 150), #predator carrying capacity
+                            c = c(0.3, 0.7)) #predator conversion efficiency
+
+```
+
+
+#### B) Scenario B
+
+In Scenario B, we isolate the influence of management decisions—specifically, the harvest rate and the [**prey**]{style="color:#038C9F;"} biomass threshold used to trigger fishery closure. To ensure that the effects observed are due solely to these management parameters, we hold all biological parameters constant at reasonable fixed values. This enables us to evaluate how much control fishery managers have over system stability through harvest policy alone.
+
+Because this scenario involves a simpler harvest rule without year-to-year adaptation, we apply the `lotka_volterra2()` function here, which includes biomass-proportional harvest but no feedback mechanism. This ensures a consistent structure for interpreting static management effects.
+
+```{r}
+#define the minimum and maximum values for each parameter to sample over
+param_rangesB <- data.frame(h = c(0, 0.3), #hunting rate: low to moderate
+                            V_thresh = c(500, 3000)) #biomass threshold for hunting closure
+
+#define the fixed parameters 
+param_fixedB <- list(b = 0.95, #prey birth rate
+                           K_v = 7000, #prey carrying capacity
+                           K_p = 100, #predator carrying capacity
+                           alpha = 0.008, #predator attack rate on prey
+                           c = 0.4, #predator conversion efficiency
+                           d = 0.2) #predator mortality rate 
+
+```
+
+
+#### C) Scarnio C
+
+Finally, Scenario C incorporates both ecological and management uncertainty, varying all eight parameters simultaneously. This represents a realistic but more complex view of the system, where both natural variability and management decisions can jointly influence outcomes. For this, we use the `lotka_volterra3()` function, which models adaptive management by dynamically adjusting harvest decisions based on [**prey**]{style="color:#038C9F;"} biomass trends. This function captures the interactions between biological dynamics and management feedback, making it suitable for full-system analysis.
+
+```{r}
+#define the minimum and maximum values for each parameter to sample over
+param_rangesC <- data.frame(h = c(0, 0.3), #hunting rate: low to moderate
+                            V_thresh = c(500, 3000), #biomass threshold for hunting closure
+                            b = c(0.7, 1.2),  #prey intrinsic growth rate
+                            alpha = c(0.001, 0.01), #predator attack rate on prey
+                            d = c(0.05, 0.3), #predator mortality rate
+                            K_v = c(3000, 10000), #prey carrying capacity
+                            K_p = c(80, 150), #predator carrying capacity
+                            c = c(0.3, 0.7)) #predator conversion efficiency
+
+```
+
+
+### ii) Generate Latin Hypercube Samples
+
+After defining parameter ranges, we use Latin Hypercube Sampling (LHS) to efficiently explore the parameter space. LHS is a stratified sampling method that ensures good coverage of multidimensional input spaces even with relatively few samples. 
+
+```{r}
+#define the number of samples (row)
+n <- 100
+
+```
+
+For each scenario, we create two independent LHS matrices (`X1` and `X2`) which are required for constructing the Sobol design matrix.
+
+#### A) Scenario A
+
+```{r}
+#define the number of parameters varied
+pA <- ncol(param_rangesA)
+
+#generate the LHS matrix for X1 (500 rows × 6 parameters)
+X1A <- randomLHS(n, pA)
+
+#generate the LHS matrix for X2 (independent replicate of X1)
+X2A <- randomLHS(n, pA)
+
+```
+
+
+#### B) Scenario B
+
+```{r}
+#define the number of parameters varied
+pB <- ncol(param_rangesB)
+
+#generate the LHS matrix for X1 (500 rows × 2 parameters)
+X1B <- randomLHS(n, pB)
+
+#generate the LHS matrix for X2 (independent replicate of X1)
+X2B<- randomLHS(n, pB)
+
+```
+
+
+#### C) Scenario C
+
+```{r}
+#define the number of parameters varied
+pC <- ncol(param_rangesC)
+
+#generate the LHS matrix for X1 (500 rows × 8 parameters)
+X1C <- randomLHS(n, pC)
+
+#generate the LHS matrix for X2 (independent replicate of X1)
+X2C <- randomLHS(n, pC)
+
+```
+
+With the LHS matrices created for each scenario, the next step is to rescale the sampled values from the unit interval [0,1] to their real-world parameter bounds. This ensures that each row of the LHS matrices represents a plausible parameter combination within the specified ecological or management context.
+
+### iii) Rescale to Real Parameter Values 
+
+We define a helper function `scale_to_bounds() `that automates this transformation for any LHS matrix and associated bounds.
+
+```{r}
+#rescale the values to the real parameter bounds
+scale_to_bounds <- function(X, bounds) {
+  
+  #for each parameter
+  for (j in seq_len(ncol(X))) {
+    
+    #transform each column to fall between lower and upper bounds
+    X[, j] <- bounds[1, j] + X[, j] * (bounds[2, j] - bounds[1, j])
+  }
+  
+  #return the rescaled matrix 
+  return(X)
+}
+
+```
+
+
+With the `scale_to_bounds()` function defined, we now apply it to each scenario’s LHS matrices using the parameter ranges defined earlier. We also assign meaningful column names to help with later analysis and plotting.
+
+#### A) Scenario A
+
+```{r}
+#stack the values into a matrix and apply the transformation to both sets of Latin Hypercube samples
+X1A <- scale_to_bounds(X1A, bounds = rbind(param_rangesA[1, ], param_rangesA[2, ]))
+
+#stack the values into a matrix and apply the transformation to both sets of Latin Hypercube samples
+X2A <- scale_to_bounds(X2A, bounds = rbind(param_rangesA[1, ], param_rangesA[2, ]))
+
+#reassign the names to the new matrices
+colnames(X1A) <- colnames(param_rangesA)
+colnames(X2A) <- colnames(param_rangesA)
+
+```
+
+
+#### B) Scenario B
+
+```{r}
+#stack the values into a matrix and apply the transformation to both sets of Latin Hypercube samples
+X1B <- scale_to_bounds(X1B, bounds = rbind(param_rangesB[1, ], param_rangesB[2, ]))
+
+#stack the values into a matrix and apply the transformation to both sets of Latin Hypercube samples
+X2B <- scale_to_bounds(X2B, bounds = rbind(param_rangesB[1, ], param_rangesB[2, ]))
+
+#reassign the names to the new matrices
+colnames(X1B) <- colnames(param_rangesB)
+colnames(X2B) <- colnames(param_rangesB)
+
+```
+
+
+#### C) Scenario C
+
+```{r}
+#stack the values into a matrix and apply the transformation to both sets of Latin Hypercube samples
+X1C <- scale_to_bounds(X1C, bounds = rbind(param_rangesC[1, ], param_rangesC[2, ]))
+
+#stack the values into a matrix and apply the transformation to both sets of Latin Hypercube samples
+X2C <- scale_to_bounds(X2C, bounds = rbind(param_rangesC[1, ], param_rangesC[2, ]))
+
+#reassign the names to the new matrices
+colnames(X1C) <- colnames(param_rangesC)
+colnames(X2C) <- colnames(param_rangesC)
+
+```
+
+
+### iv) Create Sobol Object
+
+Now that all parameter combinations have been rescaled, we are ready to create Sobol objects for each scenario using the sobolSalt() function. These objects define the experimental design used to compute the Sobol sensitivity indices, which quantify the relative importance of each parameter (both individually and interactively) in explaining variation in model output.
+
+```{r}
+#create the rescaled parameter matrices for Scenario A
+sobol_objectA <- sobolSalt(model = NULL, X1 = X1A, X2 = X2A, nboot = 100, scheme = "B")
+
+#create the rescaled parameter matrices for Scenario B
+sobol_objectB <- sobolSalt(model = NULL, X1 = X1B, X2 = X2B, nboot = 100, scheme = "B")
+
+#create the rescaled parameter matrices for Scenario C
+sobol_objectC <- sobolSalt(model = NULL, X1 = X1C, X2 = X2C, nboot = 100, scheme = "B")
+
+```
+
+
+### v) Run Sobol Analysis
+
+In this section, we generate model outputs for each scenario by applying the sampled parameter sets to their respective wrapper functions. Each wrapper simulates the model using one parameter combination and computes a stability metric (for Scenarios B and C) or [**prey**]{style="color:#038C9F;"} population outcome (for Scenario A).
+
+#### A) Scenario A
+
+For Scenario A (no harvest), the `no_hunting_wrapper()` function is used to run the Lotka-Volterra model without harvest. The output is a [**prey**]{style="color:#038C9F;"} population metric (time-averaged biomass from the last 10 years), which we then use to evaluate sensitivity to ecological parameters.
+
+```{r}
+#extract the full design matrix from the Sobol object and converts it into a dataframe
+sobol_input_dfA <- as.data.frame(sobol_objectA$X)
+
+#assign correct names to each column of the input dataframe
+names(sobol_input_dfA) <- c("b", "alpha", "d", "K_v", "K_p", "c")
+
+#map each row onto the no_hunting_wrapper function 
+sobol_outputA <- pmap_dbl(sobol_input_dfA,
+                          .f = ~ no_hunting_wrapper(..1, 
+                                                    ..2,
+                                                    ..3,
+                                                    ..4,
+                                                    ..5,
+                                                    ..6,
+                                                    initial_state = initial_state,
+                                                    years = years))
+
+```
+
+
+#### B) Scenario B
+
+For Scenario B (harvest only), we isolate the effects of hunting rate (`h`) and biomass threshold (`V_thresh`) by holding all biological parameters fixed. The `hunting_wrapper2()` function uses the `lotka_volterra2()` model that implements a simple density-dependent harvest rule. The output is a stability score that indicates whether the population remains above thresholds over time.
+
+```{r}
+#extract the full design matrix from the Sobol object and converts it into a dataframe
+sobol_input_dfB <- as.data.frame(sobol_objectB$X)
+
+#assign correct names to each column of the input dataframe
+names(sobol_input_dfB) <- c("h", "V_thresh")
+
+#map each row onto the hunting_wrapper2 function 
+sobol_outputB <- pmap_dbl(sobol_input_dfB,
+                          .f = ~ hunting_wrapper2(h = ..1, 
+                                                  V_thresh = ..2,
+                                                  b = param_fixedB[["b"]],
+                                                  alpha = param_fixedB[["alpha"]],
+                                                  d = param_fixedB[["d"]],
+                                                  K_v = param_fixedB[["K_v"]],
+                                                  K_p = param_fixedB[["K_p"]],
+                                                  c = param_fixedB[["c"]],
+                                                  initial_state = initial_state,
+                                                  years = years,
+                                                  V_min = V_min,
+                                                  P_min = P_min,
+                                                  mean_prey = mean_prey,
+                                                  mean_predator = mean_predator))
+ 
+```
+
+
+#### C) Scenario C
+
+Scenario C combines both ecological and management parameters, giving us a full picture of which components—biological or regulatory—most influence model stability. The `hunting_wrapper()` function uses the `lotka_volterra3()` model that implements the complete adaptive management. 
+
+```{r}
+#extract the full design matrix from the Sobol object and converts it into a dataframe
+sobol_input_dfC <- as.data.frame(sobol_objectC$X)
+
+#assign correct names to each column of the input dataframe
+names(sobol_input_dfC) <- c("h", "V_thresh", "b", "alpha", "d", "K_v", "K_p", "c")
+
+#map each row onto the hunting_wrapper function 
+sobol_outputC <- pmap_dbl(sobol_input_dfC,
+                          .f = ~ hunting_wrapper(h = ..1,
+                                                 V_thresh = ..2, 
+                                                 b = ..3, 
+                                                 alpha = ..4, 
+                                                 d =..5, 
+                                                 K_v = ..6, 
+                                                 K_p =..7,
+                                                 c = ..8,
+                                                 initial_state = initial_state3,
+                                                 years = years,
+                                                 V_min = V_min,
+                                                 P_min = P_min,
+                                                 mean_prey = mean_prey,
+                                                 mean_predator = mean_predator))
+
+```
+
+
+With model outputs now computed for all scenarios, we move on to calculating Sobol indices to quantify the importance of each parameter in driving variation in results.
+
+## d) Sobol Indices
+
+Once model outputs have been generated for all sampled parameter sets, we calculate Sobol sensitivity indices. These include:
+
+  - **First-order indices (S):** The fraction of output variance attributed to a single parameter, holding others constant.
+
+  - **Total-effect indices (T):** The total contribution of a parameter to output variance, including interactions with other parameters.
+
+### i) Calculate Indices
+
+First, we assign the outputs (`y`) to the Sobol objects and use the `tell()` function to compute the sensitivity indices for each scenario. 
+
+#### A) Scenario A
+
+```{r}
+#assign the sobol output to the sobol object
+sobol_objectA$y <- sobol_outputA
+
+#calculate the first and total order indices
+final_sobolA <- tell(sobol_objectA)
+
+#ensure the parameter names are correct
+rownames(final_sobolA$T) <- rownames(final_sobolA$S) <- colnames(param_rangesA)
+
+```
+
+
+#### B) Scenario B
+
+```{r}
+#assign the sobol output to the sobol object
+sobol_objectB$y <- sobol_outputB
+
+#calculate the first and total order indices
+final_sobolB <- tell(sobol_objectB)
+
+#ensure the parameter names are correct
+rownames(final_sobolB$T) <- rownames(final_sobolB$S) <- colnames(param_rangesB)
+
+```
+
+
+#### C) Scenario C
+
+```{r}
+#assign the sobol output to the sobol object
+sobol_objectC$y <- sobol_outputC
+
+#calculate the first and total order indices
+final_sobolC <- tell(sobol_objectC)
+
+#ensure the parameter names are correct
+rownames(final_sobolC$T) <- rownames(final_sobolC$S) <- colnames(param_rangesC)
+
+```
+
+
+
+### ii) Total-Effect Index
+
+The total-effect indices tell us the sum of the variance associated with a particular parameter and the interaction with other parameters.
+
+We visualize these results for each scenario to highlight which parameters most strongly influence model stability or [**prey**]{style="color:#038C9F;"} population outcomes. Parameters with confidence intervals (CIs) that do not include zero are considered **influential**.
+
+
+#### A) Scenario A
+
+```{r}
+#create a dataframe with the total-effect indices
+sobolA_T <- final_sobolA$T %>%
+  as.data.frame() %>%
+  rownames_to_column("parameter") %>%
+  arrange(desc(original)) %>%  #original holds total-effect index
+  clean_names()  %>% 
+  mutate(influential = case_when(min_c_i <= 0 & max_c_i >= 0 ~ "no", #CI includes zero so the parameter is NOT influential
+                                 TRUE ~ "yes")) %>% #CI excludes zero so the parameter is influential
+  select(-"std_error", -"bias")
+
+#create a plot with the total-effect indices
+ggplot(sobolA_T, aes(x = parameter, y = original, fill = parameter)) +
+  geom_col(alpha = 0.7) +
+  geom_text(aes(label = round(original, 2)),
+            vjust = -0.5, size = 4, family = "Times New Roman") +
+  labs(title = "Total-Effect Sobol Indices (Sardine Model Stability)",
+       subtitle = "Scenario A: No Hunting",
+       y = "T Index", x = "Parameter") +
+  scale_fill_manual(values = parameter_colors) +
+  theme_classic() +
+  theme(text = element_text(family = "Times New Roman"),
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 14, hjust = 0.5),
+        axis.title = element_text(size = 14, face = "bold"),
+        axis.text = element_text(size = 12),
+        legend.position = "none")
+
+```
+
+**Alpha (α)**, the [**predator**]{style="color:#D22600;"} attack rate on [**prey**]{style="color:#038C9F;"}, is overwhelmingly the most influential parameter in the no-hunting scenario.It explains ~93% of the variance in the stability of the system. This makes ecological sense: if predation pressure varies, it can drastically destabilize the [**prey**]{style="color:#038C9F;"} population in the absence of harvest regulation. **K_p** ([**predator**]{style="color:#D22600;"} carrying capacity) and **K_v** ([**prey**]{style="color:#038C9F;"} carrying capacity) also influence model outcomes, each contributing ~16–17% of the variance. These parameters control how population density constrains growth, affecting longer-term stability. **b** ([**prey**]{style="color:#038C9F;"} growth rate) and **c** ([**predator**]{style="color:#D22600;"} conversion efficiency) have minor influence individually (~2–4%). **d** ([**predator**]{style="color:#D22600;"} mortality rate) is essentially non-influential, contributing virtually nothing to variability in the stability metric under this scenario.
+
+
+```{r}
+#create a kable for T indices
+t_kableA <- kable(sobolA_T,
+                  col.names = c("Parameter", "Total-Effect Index", "Min C.I.", "Max C.I", "Influential?"),
+                  caption = htmltools::tags$div(style = "text-align: center; font-size: 1rem;",
+                                                list(htmltools::tags$strong("Sardine Model Total-Effect Indices"),
+                                                     htmltools::tags$br(),
+                                                     htmltools::tags$span("Scenario A: No Hunting"))),
+                  escape = FALSE) %>%
+  kable_styling(full_width = FALSE, font_size = "0.8rem", position = "center") %>%
+  row_spec(0, bold = TRUE, background = "rgba(174, 209, 200, 0.4)") %>%
+  row_spec(0:6, align = "center") %>%
+  kable_classic(html_font = "Times New Roman")
+
+#display the kable
+t_kableA
+
+```
+
+Overall we can conclude that in the absence of harvest, the model is most sensitive to the interaction rate between [**predator**]{style="color:#D22600;"} and [**prey**]{style="color:#038C9F;"} Density limitations (`K` terms) are secondary, but still relevant to long-term dynamics. Management strategies focused on changing mortality (`d`) or conversion efficiency (`c`) would likely **not** shift system stability meaningfully without other interventions.
+
+
+#### B) Scenario B
+
+```{r}
+#create a dataframe with the total-effect indices
+sobolB_T <- final_sobolB$T %>%
+  as.data.frame() %>%
+  rownames_to_column("parameter") %>%
+  arrange(desc(original)) %>%  #original holds total-effect index
+  clean_names()  %>% 
+  mutate(influential = case_when(min_c_i <= 0 & max_c_i >= 0 ~ "no", #CI includes zero so the parameter is NOT influential
+                                 TRUE ~ "yes")) %>% #CI excludes zero so the parameter is influential
+  select(-"std_error", -"bias")
+
+#create a plot with the total-effect indices
+ggplot(sobolB_T, aes(x = parameter, y = original, fill = parameter)) +
+  geom_col(alpha = 0.7) +
+  geom_text(aes(label = round(original, 2)),
+            vjust = -0.5, size = 4, family = "Times New Roman") +
+  labs(title = "Total-Effect Sobol Indices (Sardine Model Stability)",
+       subtitle = "Scenario B: Hunting Only",
+       y = "T Index", x = "Parameter") +
+  scale_fill_manual(values = parameter_colors) +
+  theme_classic() +
+  theme(text = element_text(family = "Times New Roman"),
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 14, hjust = 0.5),
+        axis.title = element_text(size = 14, face = "bold"),
+        axis.text = element_text(size = 12),
+        legend.position = "none")
+
+```
+
+**V_thresh** (biomass threshold for harvest closure) is the most influential parameter, with a T index of ~0.89. This indicates that the decision rule for when to allow or stop harvest exerts dominant control over system stability. Harvest closures based on [**prey**]{style="color:#038C9F;"} biomass thresholds are a highly sensitive management lever. **h** (harvest rate) is also influential, contributing ~66% of variance. This reflects how much the intensity of harvest affects whether predator-prey dynamics remain stable or crash. High harvest rates may destabilize systems that would otherwise recover under lighter or delayed harvest.
+
+```{r}
+#create a kable for T indices
+t_kableB <- kable(sobolB_T,
+                  col.names = c("Parameter", "Total-Effect Index", "Min C.I.", "Max C.I", "Influential?"),
+                  caption = htmltools::tags$div(style = "text-align: center; font-size: 1rem;",
+                                               list(htmltools::tags$strong("Sardine Model Total-Effect Indices"),
+                                                    htmltools::tags$br(),
+                                                    htmltools::tags$span("Scenario B: Hunting Only"))),
+                  escape = FALSE) %>%
+  kable_styling(full_width = FALSE, font_size = "0.8rem", position = "center") %>%
+  row_spec(0, bold = TRUE, background = "rgba(174, 209, 200, 0.4)") %>%
+  row_spec(0:2, align = "center") %>%
+  kable_classic(html_font = "Times New Roman")
+
+#display the kable
+t_kableB
+
+```
+
+Threshold-based rules (`V_thresh`) offer greater leverage for maintaining stability than simply adjusting harvest intensity (`h`) alone. Harvesting too early, before the [**prey**]{style="color:#038C9F;"} population recovers past the threshold, likely leads to system collapse. Conversely, timely closures based on biomass floor can safeguard the predator-prey relationship—despite moderate harvest pressure.
+
+
+#### C) Scenario C
+
+```{r}
+#create a dataframe with the total-effect indices
+sobolC_T <- final_sobolC$T %>%
+  as.data.frame() %>%
+  rownames_to_column("parameter") %>%
+  arrange(desc(original)) %>%  #original holds total-effect index
+  clean_names()  %>% 
+  mutate(influential = case_when(min_c_i <= 0 & max_c_i >= 0 ~ "no", #CI includes zero so the parameter is NOT influential
+                                 TRUE ~ "yes")) %>% #CI excludes zero so the parameter is influential
+  select(-"std_error", -"bias")
+
+#create a plot with the total-effect indices
+ggplot(sobolC_T, aes(x = parameter, y = original, fill = parameter)) +
+  geom_col(alpha = 0.7) +
+  geom_text(aes(label = round(original, 2)),
+            vjust = -0.5, size = 4, family = "Times New Roman") +
+  labs(title = "Total-Effect Sobol Indices (Sardine Model Stability)",
+       subtitle = "Scenario 3: Adaptive Management",
+       y = "T Index", x = "Parameter") +
+  scale_fill_manual(values = parameter_colors) +
+  theme_classic() +
+  theme(text = element_text(family = "Times New Roman"),
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 14, hjust = 0.5),
+        axis.title = element_text(size = 14, face = "bold"),
+        axis.text = element_text(size = 12),
+        legend.position = "none")
+
+```
+
+**Alpha (α)** is once again the most influential parameter, with a T index of 0.77. This continues the trend from Scenario A, confirming that predation strength is the central ecological driver of population stability. Even with management, biological interactions dominate system dynamics. **K_p** and **K_v** remain highly influential (T = 0.49 and 0.34, respectively). This reflects how upper bounds on population sizes shape recovery potential and population stability across years. Interestingly, **b**  and **h** are very close in influence (~0.30), suggesting that biological productivity and harvest intensity have comparable effects on stability. **V_thresh** is still influential (T = 0.14) but relatively less than it was in Scenario B. This supports the idea that adaptive dynamics may buffer or smooth the role of hard closure thresholds.
+
+```{r}
+#create a kable for T indices
+t_kableC <- kable(sobolC_T,
+                  col.names = c("Parameter", "Total-Effect Index", "Min C.I.", "Max C.I", "Influential?"),
+                  caption = htmltools::tags$div(style = "text-align: center; font-size: 1rem;",
+                                               list(htmltools::tags$strong("Total-Effect Indices"),
+                                                    htmltools::tags$br(),
+                                                    htmltools::tags$span("Sardine Model Stability Score"))),
+                  escape = FALSE) %>%
+  kable_styling(full_width = FALSE, font_size = "0.8rem", position = "center") %>%
+  row_spec(0, bold = TRUE, background = "rgba(174, 209, 200, 0.4)") %>%
+  row_spec(0:8, align = "center") %>%
+  kable_classic(html_font = "Times New Roman")
+
+#display the kable
+t_kableC
+
+```
+
+Predator-prey coupling (`α`) is consistently the dominant control lever, even with human intervention. Harvest rate (`h`) and productivity `(b`) are co-equally important, reflecting the classic tension in fisheries between exploitation and regeneration. **Adaptive strategies** spread influence across parameters, highlighting the complexity and interdependence of management decisions. 
+
+
+#### D) Scenario B + Scenario C Comparison 
+
+In Scenario C, which incorporates adaptive management, the relative influence of `V_thresh` diminishes compared to its role in Scenario B. Under threshold-based management alone, `V_thresh` exerts **strong control** over the system by acting as a **binary switch** that determines whether harvest is allowed in a given year. This on/off mechanism grants it high sensitivity in influencing model stability. However, in Scenario C, harvesting is no longer solely governed by a fixed threshold. Instead, the harvest rate `h` is dynamically adjusted based on trends in [**prey**]{style="color:#038C9F;"} biomass, allowing for more gradual and continuous changes in harvest pressure over time. This adaptive feedback mechanism reduces the rigid control exerted by the biomass threshold and shifts greater influence to `h`, which now acts as a **flexible**, year-to-year lever of management action. As a result, `h` becomes a more **dominant driver** of system outcomes under adaptive management, while `V_thresh` serves more as a **precautionary safeguard** than a decisive control parameter.
+
+
+### ii) First-Order Index
+
+In addition to total-effect indices, we calculate first-order Sobol indices for each scenario. While total-effect indices capture the full extent of variance associated with a parameter (including interaction effects) first-order indices isolate the direct, independent contribution of each parameter to output variance.
+
+By comparing the first-order indices across scenarios, we can assess whether parameters exert their influence through independent effects or through interactions with other model components.
+
+
+#### A) Scenario A
+
+```{r}
+#create a dataframe with the first-order indices
+sobolA_S <- final_sobolA$S %>%
+  as.data.frame() %>%
+  rownames_to_column("parameter") %>%
+  arrange(desc(original)) %>%
+  clean_names() %>%
+  mutate(influential = case_when(min_c_i <= 0 & max_c_i >= 0 ~ "no",
+                                 TRUE ~ "yes")) %>%
+  select(-std_error, -bias)
+
+#plot the first-order Indices
+ggplot(sobolA_S, aes(x = parameter, y = original, fill = parameter)) +
+  geom_col(alpha = 0.7) +
+  geom_text(aes(label = round(original, 2)),
+            vjust = -0.5, size = 4, family = "Times New Roman") +
+  labs(title = "First-Order Sobol Indices (Sardine Model Stability)",
+       subtitle = "Scenario A: No Hunting",
+       y = "S Index", x = "Parameter") +
+  scale_fill_manual(values = parameter_colors) +
+  theme_classic() +
+  theme(text = element_text(family = "Times New Roman"),
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 14, hjust = 0.5),
+        axis.title = element_text(size = 14, face = "bold"),
+        axis.text = element_text(size = 12),
+        legend.position = "none")
+
+```
+
+In the absence of hunting, the [**predator**]{style="color:#D22600;"} attack rate on prey (**alpha**) emerges as the overwhelmingly dominant driver of model stability, with a first-order Sobol index of 0.71. This high value indicates that most of the variation in the stability outcome can be attributed directly to alpha, independently of interactions with other parameters. Other biological parameters such as [**prey**]{style="color:#038C9F;"} growth rate (b), [**predator**]{style="color:#D22600;"} conversion efficiency (c), [**predator**]{style="color:#D22600;"} mortality (d), and carrying capacities (K_v, K_p) exhibit very low first-order indices - all below 0.11. 
+
+
+```{r}
+#create kable for S indices
+s_kableA <- kable(sobolA_S,
+                  col.names = c("Parameter", "First-Order Index", "Min C.I.", "Max C.I", "Influential?"),
+                  caption = htmltools::tags$div(style = "text-align: center; font-size: 1rem;",
+                                               list(htmltools::tags$strong("Sardine Model First-Order Indices"),
+                                                    htmltools::tags$br(),
+                                                    htmltools::tags$span("Scenario A: No Hunting"))),
+                  escape = FALSE) %>%
+  kable_styling(full_width = FALSE, font_size = "0.8rem", position = "center") %>%
+  row_spec(0, bold = TRUE, background = "rgba(174, 209, 200, 0.4)") %>%
+  row_spec(0:6, align = "center") %>%
+  kable_classic(html_font = "Times New Roman")
+
+#display the kable
+s_kableA
+
+```
+
+Furthermore, their confidence intervals include zero, meaning their independent contributions are statistically insignificant. This suggests that while some of these parameters may be involved in interactions (as seen in total-effect indices), their isolated influence on stability is minimal in a no-harvest context. The strong dominance of `alpha` highlights the critical role of predator-prey coupling strength in determining system resilience when external pressures such as harvest are absent.
+
+
+#### B) Scenario B
+
+```{r}
+#create a dataframe with the first-order indices
+sobolB_S <- final_sobolB$S %>%
+  as.data.frame() %>%
+  rownames_to_column("parameter") %>%
+  arrange(desc(original)) %>%
+  clean_names() %>%
+  mutate(influential = case_when(min_c_i <= 0 & max_c_i >= 0 ~ "no",
+                                 TRUE ~ "yes")) %>%
+  select(-std_error, -bias)
+
+#plot the first-order Indices
+ggplot(sobolB_S, aes(x = parameter, y = original, fill = parameter)) +
+  geom_col(alpha = 0.7) +
+  geom_text(aes(label = round(original, 2)),
+            vjust = -0.5, size = 4, family = "Times New Roman") +
+  labs(title = "First-Order Sobol Indices (Sardine Model Stability)",
+       subtitle = "Scenario B: Hunting Only",
+       y = "S Index", x = "Parameter") +
+  scale_fill_manual(values = parameter_colors) +
+  theme_classic() +
+  theme(text = element_text(family = "Times New Roman"),
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 14, hjust = 0.5),
+        axis.title = element_text(size = 14, face = "bold"),
+        axis.text = element_text(size = 12),
+        legend.position = "none")
+
+```
+
+In the hunting-only scenario, where biological parameters are held constant and only the harvest rate (**h**) and the biomass closure threshold (**V_thresh**) are varied, the first-order Sobol analysis reveals that **V_thresh** is the **more** influential parameter. It has a first-order index of 0.34, with a confidence interval that **does not** include zero, indicating a statistically significant independent effect on model stability.In contrast, **h** (harvest rate) shows a considerably lower first-order index of 0.11, and its confidence interval **includes** zero. This suggests that although **h** may still interact with other parameters (as seen in the total-effect index), its individual contribution to variance in the stability outcome is **weak** and not statistically reliable.
+
+
+```{r}
+#create kable for S indices
+s_kableB <- kable(sobolB_S,
+                  col.names = c("Parameter", "First-Order Index", "Min C.I.", "Max C.I", "Influential?"),
+                  caption = htmltools::tags$div(style = "text-align: center; font-size: 1rem;",
+                                               list(htmltools::tags$strong("Sardine Model First-Order Indices"),
+                                                    htmltools::tags$br(),
+                                                    htmltools::tags$span("Scenario B: Hunting Only"))),
+                  escape = FALSE) %>%
+  kable_styling(full_width = FALSE, font_size = "0.8rem", position = "center") %>%
+  row_spec(0, bold = TRUE, background = "rgba(174, 209, 200, 0.4)") %>%
+  row_spec(0:2, align = "center") %>%
+  kable_classic(html_font = "Times New Roman")
+
+#display the kable
+s_kableB
+
+```
+
+These results imply that, in isolation, where the threshold is set to pause or resume harvest (`V_thresh`) plays a more decisive role in shaping the long-term stability of the predator-prey system than the magnitude of harvest rate (`h`) itself. This makes intuitive sense: if the threshold is set too low, harvest may resume before the system is truly recovered, increasing instability.
+
+
+#### C) Scenario C
+
+```{r}
+#create a dataframe with the first-order indices
+sobolC_S <- final_sobolC$S %>%
+  as.data.frame() %>%
+  rownames_to_column("parameter") %>%
+  arrange(desc(original)) %>%
+  clean_names() %>%
+  mutate(influential = case_when(min_c_i <= 0 & max_c_i >= 0 ~ "no",
+                                 TRUE ~ "yes")) %>%
+  select(-std_error, -bias)
+
+#plot the first-order Indices
+ggplot(sobolC_S, aes(x = parameter, y = original, fill = parameter)) +
+  geom_col(alpha = 0.7) +
+  geom_text(aes(label = round(original, 2)),
+            vjust = -0.5, size = 4, family = "Times New Roman") +
+  labs(title = "First-Order Sobol Indices (Sardine Model Stability)",
+       subtitle = "Scenario C: All Parameters",
+       y = "S Index", x = "Parameter") +
+  scale_fill_manual(values = parameter_colors) +
+  theme_classic() +
+  theme(text = element_text(family = "Times New Roman"),
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 14, hjust = 0.5),
+        axis.title = element_text(size = 14, face = "bold"),
+        axis.text = element_text(size = 12),
+        legend.position = "none")
+
+```
+
+In the full model, where both biological and management parameters are allowed to vary simultaneously, the first-order Sobol indices reveal that **alpha** continues to be the most influential individual parameter, with a first-order index of 0.29, and a confidence interval that excludes zero, indicating a strong and statistically significant effect on model stability. All other parameters—including **K_p**, **K_v**, and **h** have noticeably lower first-order indices (ranging from 0.06 to 0.13) and confidence intervals that include zero, suggesting weaker or non-significant independent effects. **V_thresh**, which previously had a strong effect in Scenario B, now shows a **near-zero** first-order index with a wide confidence interval overlapping zero, indicating **no significant main effect** when all other parameters vary concurrently.
+
+
+```{r}
+#create kable for S indices
+s_kableC <- kable(sobolC_S,
+                  col.names = c("Parameter", "First-Order Index", "Min C.I.", "Max C.I", "Influential?"),
+                  caption = htmltools::tags$div(style = "text-align: center; font-size: 1rem;",
+                                               list(htmltools::tags$strong("Sardine Model First-Order Indices"),
+                                                    htmltools::tags$br(),
+                                                    htmltools::tags$span("Scenario A: No Hunting"))),
+                  escape = FALSE) %>%
+  kable_styling(full_width = FALSE, font_size = "0.8rem", position = "center") %>%
+  row_spec(0, bold = TRUE, background = "rgba(174, 209, 200, 0.4)") %>%
+  row_spec(0:8, align = "center") %>%
+  kable_classic(html_font = "Times New Roman")
+
+#display the kable
+s_kableC
+
+```
+
+
+This suggests that interactions and non-linear combinations among parameters become more important in Scenario C. The reduced main effect of `V_thresh` may reflect that its influence is highly context-dependent—its role in stabilizing or destabilizing the system is likely modulated by combinations of biological traits and other management dynamics. This complexity underscores the necessity of evaluating models in a fully coupled management-ecological framework to accurately identify robust leverage points for stability.
+
+
+#### D) All Scenario Comparison 
+
+The comparative analysis of Sobol indices across all three scenarios provides valuable insight into how ecological versus management parameters influence system stability, both independently and interactively. In **Scenario A (No Hunting)**, the predator-prey interaction coefficient `alpha` was the dominant driver of system stability, with a first-order index of 0.71 and a total-effect index exceeding 0.92, reflecting strong independent and interaction effects. This indicates that under natural dynamics, [**predator**]{style="color:#D22600;"} pressure is the most critical factor influencing whether the system maintains stable population levels.
+
+In **Scenario B (Hunting Only)**, management decisions begin to play a larger role. Both `V_thresh` and `h` exhibited strong total-effect indices (0.89 and 0.66, respectively), but only `V_thresh` had a statistically significant first-order effect. This suggests that the stability of the system is highly sensitive to the threshold that governs harvest closure, and that the harvest rate (`h`) primarily acts through its interactions with other processes (i.e. biomass levels near the threshold). Here, stability is governed more by management policy than by biological traits.
+
+By contrast, **Scenario C (All Parameters)** integrates both ecological and management uncertainty. The dominance of alpha persists (T index = 0.77), but the influence of biological parameters becomes more evenly distributed, with meaningful contributions from `K_p`, `K_v`, and `b`. Interestingly, `h` also shows a moderate total-effect index (0.28) with *non-significant* first-order effects, and `V_thresh` drops to the lowest influence. This shift indicates that in a fully dynamic system, the effectiveness of a harvest closure threshold is contingent on the biological context, and its standalone effect diminishes amongst interacting biological processes.
+
+Overall, these results emphasize that while ecological traits like predation strength consistently underpin system dynamics, management parameters can exert strong stabilizing or destabilizing forces when operating in isolation (Scenario B), but their predictive power is moderated when coupled with ecological uncertainty (Scenario C). This highlights the importance of considering **interactive feedbacks** and not assuming linear policy outcomes in adaptive management strategies.
+
+
+# VI. References
+
+::: {#refs}
+:::
+
